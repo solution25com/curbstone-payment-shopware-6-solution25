@@ -1,0 +1,49 @@
+<div class="sw-settings-curbstone-form">
+    <mt-card style="margin-top: 20px;" title="Sales channel">
+        <sw-sales-channel-switch
+                ref="salesChannelSwitch"
+                :sales-channel-id="salesChannelId"
+                label="Select sales channel"
+                @change-sales-channel-id="onSalesChannelChanged"
+        />
+    </mt-card>
+
+    <mt-card :isLoading="isLoading" title="Configuration">
+        <div class="grid grid-cols-1 gap-20">
+            <sw-switch-field
+                    label="Sandbox mode"
+                    help-text="Use Curbstone sandbox endpoints (c3sbx.net). Switch off for production (c3dsi.net)."
+                    v-model:value="form['Curbstone.config.sandbox']"
+            />
+
+            {# <sw-single-select
+                    label="Checkout Integration"
+                    help-text=""
+                    v-model:value="form['Curbstone.config.checkoutIntegration']"
+                    :options="checkoutIntegrationOptions"
+                    placeholder="DSI"
+            /> #}
+
+            <sw-text-field
+                    label="Merchant DSI Key (MFDSIK)"
+                    v-model:value="form['Curbstone.config.dsiKey']"
+                    :maxlength="256"
+                    placeholder="Your Curbstone MFDSIK"
+            />
+
+            <sw-text-field
+                    label="Customer ID (MFCUST)"
+                    v-model:value="form['Curbstone.config.customerId']"
+                    :maxlength="64"
+                    placeholder="Your Curbstone MFCUST"
+            />
+
+            <sw-text-field
+                    label="Merchant Code (MFMRCH)"
+                    v-model:value="form['Curbstone.config.merchantCode']"
+                    :maxlength="64"
+                    placeholder="Your Curbstone MFMRCH"
+            />
+        </div>
+    </mt-card>
+</div>

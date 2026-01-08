@@ -1,0 +1,25 @@
+{
+  "base": "/bundles/curbstone/administration/",
+  "entryPoints": {
+    "curbstone": {
+      "css": [
+        "/bundles/curbstone/administration/assets/curbstone-B_LCzDX_.css"
+      ],
+      "dynamic": [],
+      "js": [
+        "/bundles/curbstone/administration/assets/curbstone-YVQAapJj.js"
+      ],
+      "legacy": false,
+      "preload": []
+    }
+  },
+  "legacy": false,
+  "metadatas": {},
+  "version": [
+    "7.1.0",
+    7,
+    1,
+    0
+  ],
+  "viteServer": null
+}

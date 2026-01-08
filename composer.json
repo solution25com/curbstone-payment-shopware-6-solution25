@@ -1,0 +1,69 @@
+{
+    "name": "curbstone/curbstone",
+    "description": "Curbstone Payments for Shopware 6.7. A first-party integration that enables secure credit-card authorization and capture flows, manual capture, refunds, and storefront/admin configuration with PCI-aware UX patterns designed for high-conversion checkouts.",
+    "type": "shopware-platform-plugin",
+    "version": "1.0.0",
+    "license": "MIT",
+    "require": {
+      "shopware/core": "~6.7.0",
+      "php": ">=8.1"
+    },
+    "extra": {
+      "shopware-plugin-class": "Curbstone\\Curbstone",
+      "label": {
+        "de-DE": "Curbstone Payments",
+        "en-GB": "Curbstone Payments"
+      },
+      "description": {
+        "en-GB": "Curbstone Payments adds secure card processing to Shopware 6.7, including authorization, capture and refunds. Storefront flows and admin settings streamline checkout",
+        "de-DE": "Curbstone Payments integriert sichere Kartenzahlungen in Shopware 6.7, inklusive Autorisierung. Storefront-Abläufe und Admin-Einstellungen optimieren den Checkout."
+      },
+      "manufacturerLink": {
+        "en-GB": "https://www.curbstone.com/",
+        "de-DE": "https://www.curbstone.com/"
+      },
+      "supportLink": {
+        "en-GB": "https://www.curbstone.com/support/",
+        "de-DE": "https://www.curbstone.com/support/"
+      }
+    },
+    "authors": [
+        {
+            "name": "solution 25",
+            "role": "Manufacturer"
+        }
+    ],
+    "autoload": {
+      "psr-4": {
+        "Curbstone\\": "src/"
+      }
+    },
+    "autoload-dev": {
+      "psr-4": {
+        "Curbstone\\Tests\\": "tests/"
+      }
+    },
+    "require-dev": {
+      "phpstan/phpstan": "^2.1",
+      "shopware/core": "~6.7.0",
+      "shopware/storefront": "~6.7.0",
+      "squizlabs/php_codesniffer": "^4.0"
+    },
+    "config": {
+        "allow-plugins": {
+            "symfony/runtime": true
+        }
+    },
+  "scripts": {
+    "post-install-cmd": [
+      "@enable-prepush"
+    ],
+    "post-update-cmd": [
+      "@enable-prepush"
+    ],
+    "enable-prepush": [
+      "cp ./pre-push .git/hooks/pre-push",
+      "chmod +x .git/hooks/pre-push"
+    ]
+  }
+}

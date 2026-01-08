@@ -1,0 +1,11 @@
+{
+  "main.js": {
+    "file": "assets/curbstone-YVQAapJj.js",
+    "name": "curbstone",
+    "src": "main.js",
+    "isEntry": true,
+    "css": [
+      "assets/curbstone-B_LCzDX_.css"
+    ]
+  }
+}

@@ -1,0 +1,95 @@
+{% block curbstone_payment_iframe %}
+    {% set curbstone = curbstone ?? page.extensions.curbstone_payment ?? null %}
+    {% if curbstone and curbstone.iframeUrl %}
+
+        {# trigger button #}
+        <button
+            type="button"
+            class="btn btn-primary"
+            id="curbstone-open-modal"
+            style="margin-top: 15px;"
+        >
+            Pay with card
+        </button>
+
+        {# modal overlay #}
+        <div id="curbstone-modal" class="curbstone-modal" style="display:none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.45);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;">
+            <div class="curbstone-modal__inner" style="
+                background: #fff;
+                width: min(100%, 820px);
+                max-height: 90vh;
+                border-radius: 6px;
+                box-shadow: 0 10px 30px rgba(0,0,0,.25);
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            ">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 15px;border-bottom:1px solid #eee;">
+                    <h3 style="margin:0;font-size:16px;">Card payment</h3>
+                    <button type="button" id="curbstone-close-modal" style="background:none;border:0;font-size:20px;line-height:1;cursor:pointer;">×</button>
+                </div>
+
+                <div style="flex:1;overflow:auto;">
+                    <iframe
+                        id="plp-iframe"
+                        src="{{ curbstone.iframeUrl }}"
+                        style="width: 100%; min-height: 520px; border: 0; display:block;"
+                        referrerpolicy="no-referrer"
+                    ></iframe>
+
+                    <noscript>
+                        <p style="display:block;border:1px solid red;background:#fee;padding:15px;">
+                            JavaScript is required to complete payment.
+                            <a href="{{ curbstone.iframeUrl|replace({'mode=embedded':'mode=redirect'}) }}">
+                                Click here to pay
+                            </a>
+                        </p>
+                    </noscript>
+                </div>
+            </div>
+        </div>
+
+        {# include PLP script like before #}
+        {% if curbstone.portalBase is defined and curbstone.portalBase %}
+            <script src="{{ curbstone.portalBase }}scripts/plp.js"></script>
+        {% else %}
+            {% set base = curbstone.iframeUrl|split('?')|first %}
+            <script src="{{ base }}scripts/plp.js"></script>
+        {% endif %}
+
+        <script>
+            (function () {
+                var openBtn  = document.getElementById('curbstone-open-modal');
+                var modal    = document.getElementById('curbstone-modal');
+                var closeBtn = document.getElementById('curbstone-close-modal');
+
+                if (!openBtn || !modal) {
+                    return;
+                }
+
+                openBtn.addEventListener('click', function () {
+                    modal.style.display = 'flex';
+                });
+
+                closeBtn && closeBtn.addEventListener('click', function () {
+                    modal.style.display = 'none';
+                });
+
+                // click outside to close
+                modal.addEventListener('click', function (e) {
+                    if (e.target === modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+            })();
+        </script>
+
+    {% endif %}
+{% endblock %}

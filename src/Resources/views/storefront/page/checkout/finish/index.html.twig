@@ -1,0 +1,21 @@
+{% sw_extends '@Storefront/storefront/page/checkout/finish/index.html.twig' %}
+
+{% block page_checkout_additional %}
+    {{ parent() }}
+
+    {# this is what your dump showed: "curbstone_payment" #}
+    {% set curbstone = page.extensions.curbstone_payment ?? null %}
+
+    {% if curbstone and curbstone.template is defined %}
+        {# if subscriber passed a template, use that #}
+        {% include curbstone.template with { page: page, curbstone: curbstone } %}
+    {% else %}
+        {# fall back directly to our template in case template wasn’t set #}
+        {% if curbstone and curbstone.iframeUrl is defined %}
+            {% include '@Storefront/curbstone-payment/curbstone-payment.html.twig' with {
+                page: page,
+                curbstone: curbstone
+            } %}
+        {% endif %}
+    {% endif %}
+{% endblock %}

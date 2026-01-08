@@ -1,0 +1,30 @@
+#!/bin/bash
+set -e
+
+echo "🔍 Running Shopware Extension Verifier before push..."
+
+EXTENSION_DIR=$(pwd)
+
+# Run Shopware CLI Verifier
+docker run --rm -v "$EXTENSION_DIR":/ext ghcr.io/shopware/shopware-cli \
+    extension validate --full --check-against highest /ext
+SW_EXIT_CODE=$?
+echo "Shopware Extension Verifier Exit Code: $SW_EXIT_CODE"
+
+echo "🔍 Running PHP_CodeSniffer (PHPCS)..."
+sh ./pre-push-checks/phpcs-check.sh
+PHPCS_EXIT_CODE=$?
+echo "PHPCS Exit Code: $PHPCS_EXIT_CODE"
+
+if [ $SW_EXIT_CODE -ne 0 ]; then
+    echo "❌ Shopware Extension Verifier failed. Push aborted."
+    exit 1
+fi
+
+if [ $PHPCS_EXIT_CODE -ne 0 ]; then
+    echo "❌ PHPCS check failed. Push aborted."
+    exit 1
+fi
+
+echo "✅ All checks passed. Proceeding with push."
+exit 0

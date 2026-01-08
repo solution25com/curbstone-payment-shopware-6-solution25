@@ -1,0 +1,26 @@
+<sw-page headerBorderColor="#9AA8B5">
+    <template #smart-bar-header>
+        <div class="sw-page__smart-bar-header">
+            <h2>{{ $tc('Curbstone settings') }}</h2>
+            <mt-icon
+                    name="regular-chevron-right-xs"
+                    size="12px"
+            />
+            <h2>{{ $tc('Curbstone') }}</h2>
+        </div>
+    </template>
+    <template #smart-bar-actions>
+        <sw-button
+                :disabled="$refs.curbstoneForm && $refs.curbstoneForm.isLoading"
+                :loading="$refs.curbstoneForm && $refs.curbstoneForm.isLoading"
+                @click="onSave"
+                variant="secondary"
+        >
+            {{ $tc('Save Configs') }}
+        </sw-button>
+    </template>
+
+    <template #content>
+        <sw-settings-curbstone-form ref="form" @saved="onSaved"/>
+    </template>
+</sw-page>
