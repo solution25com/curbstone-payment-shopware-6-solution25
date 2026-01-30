@@ -1,5 +1,5 @@
 {
-    "name": "curbstone/curbstone",
+    "name": "solution25/curbstone",
     "description": "Curbstone Payments for Shopware 6.7. A first-party integration that enables secure credit-card authorization and capture flows, manual capture, refunds, and storefront/admin configuration with PCI-aware UX patterns designed for high-conversion checkouts.",
     "type": "shopware-platform-plugin",
     "version": "1.0.0",
