@@ -1,8 +1,327 @@
 {% sw_extends '@Storefront/storefront/page/checkout/confirm/index.html.twig' %}
 
-{% block page_checkout_confirm_form_submit %}
-  <input id="paymentUrl" type="hidden" name="paymentUrl" value="" />
-  {{ parent() }}
-      {# {% include '@Storefront/curbstone-payment/curbstone-payment.html.twig' %} #}
+{% block base_head %}
+    {{ parent() }}
 
+    {% set preauth = page.extensions.curbstone_preauth ?? null %}
+    {% set curbstoneAuto = app.request.get('curbstone_auto') %}
+    {% set qsStatus = app.request.get('curbstone_status') %}
+    {% set qsToken = app.request.get('curbstone_token') %}
+    {% set qsMfukey = app.request.get('curbstone_mfukey') %}
+    {% set effectiveStatus = preauth ? preauth.status|default('pending') : (qsStatus ?: 'pending') %}
+    {% set effectiveToken = preauth ? preauth.token|default('') : (qsToken ?: '') %}
+    {% set effectiveMfukey = preauth ? preauth.mfukey|default('') : (qsMfukey ?: '') %}
+
+    {% set curbstoneAutoSubmit = curbstoneAuto == '1'
+        and effectiveStatus == 'OK'
+        and effectiveToken is not empty
+        and effectiveMfukey is not empty %}
+
+    {% if curbstoneAutoSubmit %}
+        <script>
+            (function () {
+                const params = new URLSearchParams(window.location.search);
+                const shouldShowCurbstoneLoader =
+                    params.get('curbstone_auto') === '1' &&
+                    params.get('curbstone_status') === 'OK' &&
+                    params.has('curbstone_token') &&
+                    params.has('curbstone_mfukey');
+
+                if (!shouldShowCurbstoneLoader) {
+                    return;
+                }
+
+                const overlayId = 'curbstone-auto-submit-overlay';
+                const lockClass = 'curbstone-auto-submit-lock';
+                let overlay = null;
+                let failSafe = null;
+                let guardsInstalled = false;
+                let processingActive = false;
+                let activeForm = null;
+                const guardedSelector = 'button, input, select, textarea, a, [role="button"]';
+
+                function setLocked(isLocked) {
+                    processingActive = isLocked;
+                    document.documentElement.classList.toggle(lockClass, isLocked);
+
+                    if (document.body) {
+                        document.body.classList.toggle(lockClass, isLocked);
+                    }
+                }
+
+                function isGuardedTarget(target) {
+                    return !!(target && typeof target.closest === 'function' && target.closest(guardedSelector));
+                }
+
+                function installGuards() {
+                    if (guardsInstalled) {
+                        return;
+                    }
+
+                    guardsInstalled = true;
+
+                    document.addEventListener('submit', function (event) {
+                        if (!processingActive) {
+                            return;
+                        }
+
+                        event.preventDefault();
+                        event.stopImmediatePropagation();
+                    }, true);
+
+                    document.addEventListener('click', function (event) {
+                        if (!processingActive || !isGuardedTarget(event.target)) {
+                            return;
+                        }
+
+                        event.preventDefault();
+                        event.stopImmediatePropagation();
+                    }, true);
+
+                    document.addEventListener('keydown', function (event) {
+                        if (!processingActive || !isGuardedTarget(event.target)) {
+                            return;
+                        }
+
+                        if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
+                            event.preventDefault();
+                            event.stopImmediatePropagation();
+                        }
+                    }, true);
+                }
+
+                function disableFormControls() {
+                    if (!activeForm) {
+                        return;
+                    }
+
+                    activeForm.setAttribute('aria-busy', 'true');
+
+                    activeForm.querySelectorAll('button, input, select, textarea').forEach(function (element) {
+                        if (element instanceof HTMLButtonElement || element instanceof HTMLInputElement || element instanceof HTMLSelectElement || element instanceof HTMLTextAreaElement) {
+                            if (!element.hasAttribute('data-curbstone-disabled-by-loader') && !element.disabled) {
+                                element.setAttribute('data-curbstone-disabled-by-loader', '1');
+                                element.dataset.curbstoneDisabledByLoader = '1';
+                                element.disabled = true;
+                            }
+                        }
+                    });
+                }
+
+                function renderErrorState(message) {
+                    console.error('[Curbstone] Auto-submit failed:', message);
+
+                    renderOverlay(
+                        'is-error',
+                        'Could not continue checkout',
+                        'The order was not submitted automatically. Please wait or try again.'
+                    );
+
+                    if (failSafe) {
+                        window.clearTimeout(failSafe);
+                    }
+
+                    window.setTimeout(removeOverlay, 1800);
+                }
+
+                function renderOverlay(contentClass, title, text) {
+                    const node = overlay || document.getElementById(overlayId);
+
+                    if (!node) {
+                        overlay = document.createElement('div');
+                        overlay.id = overlayId;
+                        (document.body || document.documentElement).appendChild(overlay);
+                    } else {
+                        overlay = node;
+                    }
+
+                    overlay.className = 'curbstone-auto-submit-overlay' + (contentClass ? ' ' + contentClass : '');
+                    overlay.setAttribute('role', 'status');
+                    overlay.setAttribute('aria-live', 'polite');
+                    overlay.setAttribute('aria-busy', contentClass === 'is-error' ? 'false' : 'true');
+                    overlay.tabIndex = -1;
+                    overlay.innerHTML = [
+                        '<div class="curbstone-auto-submit-overlay__panel">',
+                            contentClass === 'is-error'
+                                ? ''
+                                : '<span class="curbstone-auto-submit-overlay__spinner" aria-hidden="true"></span>',
+                            '<p class="curbstone-auto-submit-overlay__title">' + title + '</p>',
+                            '<p class="curbstone-auto-submit-overlay__text">' + text + '</p>',
+                        '</div>',
+                    ].join('');
+
+                    setLocked(true);
+
+                    if (typeof overlay.focus === 'function') {
+                        overlay.focus({ preventScroll: true });
+                    }
+                }
+
+                function removeOverlay() {
+                    if (overlay && overlay.parentNode) {
+                        overlay.parentNode.removeChild(overlay);
+                    }
+
+                    overlay = null;
+                    setLocked(false);
+                }
+
+                function showLoader() {
+                    installGuards();
+                    renderOverlay(
+                        '',
+                        'Processing your order',
+                        'Please wait while Curbstone completes the payment.'
+                    );
+                    disableFormControls();
+                }
+
+                function showError(message) {
+                    renderErrorState(message);
+                }
+
+                window.CurbstoneAutoSubmitLoader = {
+                    show: showLoader,
+                    error: showError,
+                    hide: removeOverlay,
+                    isProcessing: function () {
+                        return processingActive;
+                    },
+                    attachForm: function (form) {
+                        activeForm = form;
+                        disableFormControls();
+                    },
+                };
+
+                showLoader();
+            })();
+        </script>
+    {% endif %}
+{% endblock %}
+
+{% block page_checkout_confirm_form_submit %}
+    {% set preauth = page.extensions.curbstone_preauth ?? null %}
+    {% set curbstoneAuto = app.request.get('curbstone_auto') %}
+    {% set qsStatus = app.request.get('curbstone_status') %}
+    {% set qsToken = app.request.get('curbstone_token') %}
+    {% set qsMfukey = app.request.get('curbstone_mfukey') %}
+    {% set effectiveStatus = preauth ? preauth.status|default('pending') : (qsStatus ?: 'pending') %}
+    {% set effectiveToken = preauth ? preauth.token|default('') : (qsToken ?: '') %}
+    {% set effectiveMfukey = preauth ? preauth.mfukey|default('') : (qsMfukey ?: '') %}
+
+    {% set isCurbstone = context.paymentMethod is defined
+        and context.paymentMethod.formattedHandlerIdentifier == 'handler_curbstone_creditcard' %}
+
+    <input type="hidden"
+           name="curbstone_pre_auth_status"
+           id="curbstone-pre-auth-status"
+           value="{{ effectiveStatus }}">
+
+    <input type="hidden"
+           name="curbstone_pre_auth_token"
+           id="curbstone-pre-auth-token"
+           value="{{ effectiveToken }}">
+
+    <input type="hidden"
+           name="curbstone_pre_auth_mfukey"
+           id="curbstone-pre-auth-mfukey"
+           value="{{ effectiveMfukey }}">
+
+    <div class="d-grid">
+        <button id="confirmFormSubmit"
+                class="btn btn-primary btn-lg{% if isCurbstone %} curbstone-confirm-btn{% endif %}"
+                form="confirmOrderForm"
+                {% if page.cart.errors.blockResubmit %}
+                    disabled
+                {% endif %}
+                type="submit">
+            {{ 'checkout.confirmSubmit'|trans|sw_sanitize }}
+        </button>
+    </div>
+
+    {% if isCurbstone %}
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const btn = document.getElementById('confirmFormSubmit');
+                const radios = document.querySelectorAll('input[name="curbstone_card_choice"]');
+
+                if (!btn || !radios.length) return;
+
+                function update() {
+                    const selected = document.querySelector('input[name="curbstone_card_choice"]:checked');
+                    if (!selected) return;
+
+                    if (selected.value === 'new') {
+                        btn.style.display = 'none';
+                    } else {
+                        btn.style.display = '';
+                    }
+                }
+
+                radios.forEach(r => r.addEventListener('change', update));
+                update();
+            });
+        </script>
+    {% endif %}
+
+    {% if curbstoneAutoSubmit %}
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const form =
+                    document.querySelector('form[action*="/checkout/order"]') ||
+                    document.querySelector('form[name="confirmOrderForm"]') ||
+                    document.querySelector('#confirmOrderForm');
+
+                if (!form) {
+                    if (window.CurbstoneAutoSubmitLoader) {
+                        window.CurbstoneAutoSubmitLoader.error('Confirm form not found');
+                    } else {
+                        console.error('[Curbstone] Confirm form not found');
+                    }
+
+                    return;
+                }
+
+                let navigationStarted = false;
+                const failSafe = window.setTimeout(function () {
+                    if (!navigationStarted) {
+                        if (window.CurbstoneAutoSubmitLoader) {
+                            window.CurbstoneAutoSubmitLoader.error('Auto-submit timed out');
+                        } else {
+                            console.error('[Curbstone] Auto-submit timed out');
+                        }
+                    }
+                }, 15000);
+
+                if (window.CurbstoneAutoSubmitLoader && typeof window.CurbstoneAutoSubmitLoader.attachForm === 'function') {
+                    window.CurbstoneAutoSubmitLoader.attachForm(form);
+                }
+
+                window.addEventListener('beforeunload', function () {
+                    navigationStarted = true;
+                    window.clearTimeout(failSafe);
+                }, { once: true });
+
+                const submitForm = function () {
+                    try {
+                        form.submit();
+                    } catch (error) {
+                        if (window.CurbstoneAutoSubmitLoader) {
+                            window.CurbstoneAutoSubmitLoader.error(error && error.message ? error.message : 'Unexpected submit error');
+                        } else {
+                            console.error('[Curbstone] Auto-submit failed:', error);
+                        }
+                    }
+                };
+
+                if (typeof window.requestAnimationFrame === 'function') {
+                    window.requestAnimationFrame(function () {
+                        window.requestAnimationFrame(submitForm);
+                    });
+                } else {
+                    window.setTimeout(submitForm, 100);
+                }
+            });
+        </script>
+    {% endif %}
 {% endblock %}

@@ -1,95 +1,167 @@
-{% block curbstone_payment_iframe %}
-    {% set curbstone = curbstone ?? page.extensions.curbstone_payment ?? null %}
-    {% if curbstone and curbstone.iframeUrl %}
+{% block curbstone_payment %}
+<input type="hidden"
+       id="curbstone-payment-method-id"
+       value="{{ payment.id }}">
 
-        {# trigger button #}
-        <button
-            type="button"
-            class="btn btn-primary"
-            id="curbstone-open-modal"
-            style="margin-top: 15px;"
-        >
-            Pay with card
-        </button>
+<input type="hidden"
+       id="curbstone-mfkeyp"
+       name="curbstone_mfkeyp"
+       value="">
 
-        {# modal overlay #}
-        <div id="curbstone-modal" class="curbstone-modal" style="display:none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,.45);
-            z-index: 9999;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;">
-            <div class="curbstone-modal__inner" style="
-                background: #fff;
-                width: min(100%, 820px);
-                max-height: 90vh;
-                border-radius: 6px;
-                box-shadow: 0 10px 30px rgba(0,0,0,.25);
-                display: flex;
-                flex-direction: column;
-                overflow: hidden;
-            ">
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 15px;border-bottom:1px solid #eee;">
-                    <h3 style="margin:0;font-size:16px;">Card payment</h3>
-                    <button type="button" id="curbstone-close-modal" style="background:none;border:0;font-size:20px;line-height:1;cursor:pointer;">×</button>
-                </div>
+{% set savedCardsStruct = page.extensions.curbstone_saved_cards ?? null %}
+{% set savedCards = savedCardsStruct ? savedCardsStruct : [] %}
 
-                <div style="flex:1;overflow:auto;">
-                    <iframe
-                        id="plp-iframe"
-                        src="{{ curbstone.iframeUrl }}"
-                        style="width: 100%; min-height: 520px; border: 0; display:block;"
-                        referrerpolicy="no-referrer"
-                    ></iframe>
+{% if context.paymentMethod is defined
+    and context.paymentMethod.formattedHandlerIdentifier == 'handler_curbstone_creditcard' %}
+    <div class="curbstone-payment-section" style="padding:1rem;">
 
-                    <noscript>
-                        <p style="display:block;border:1px solid red;background:#fee;padding:15px;">
-                            JavaScript is required to complete payment.
-                            <a href="{{ curbstone.iframeUrl|replace({'mode=embedded':'mode=redirect'}) }}">
-                                Click here to pay
-                            </a>
-                        </p>
-                    </noscript>
-                </div>
+        {% if savedCards|length > 0 %}
+            <div class="curbstone-section-header">
+                <h4 class="curbstone-section-title">Choose a card</h4>
+                <p class="curbstone-section-subtitle">
+                    Securely pay with a saved card or add a new one.
+                </p>
             </div>
-        </div>
 
-        {# include PLP script like before #}
-        {% if curbstone.portalBase is defined and curbstone.portalBase %}
-            <script src="{{ curbstone.portalBase }}scripts/plp.js"></script>
-        {% else %}
-            {% set base = curbstone.iframeUrl|split('?')|first %}
-            <script src="{{ base }}scripts/plp.js"></script>
+            <div class="curbstone-saved-cards-grid"
+                 data-curbstone-cards-per-page="5">
+
+                {% set hasDefault = false %}
+
+                {% for card in savedCards %}
+                    {% set cardType = (card.type|default('')|trim) ?: (card.brand|default('')|trim) ?: 'Card' %}
+                    {% set cardBrand = card.brand|default('')|trim %}
+                    {% if cardBrand == 'Card' %}
+                        {% set cardBrand = '' %}
+                    {% endif %}
+                    {% set cardHolderNameVerified = card.cardHolderNameVerified|default(false) %}
+                    {% set cardHolderName = card.cardHolderName|default(card.holderName|default(''))|trim %}
+                    {% set isDefault = card.isDefault ?? false %}
+                    {% set cardDisplay = cardType ~ ' ending in ' ~ (card.last4|default('0000')|trim) %}
+                    {% set cardExpiry = card.exp ? 'Expires ' ~ card.exp : null %}
+                    {% if isDefault %}
+                        {% set hasDefault = true %}
+                    {% endif %}
+
+                    <label class="curbstone-card-tile curbstone-card-tile--saved">
+                        <input type="radio"
+                               name="curbstone_card_choice"
+                               value="{{ card.mfkeyp }}"
+                               class="curbstone-saved-card-radio curbstone-card-tile-input"
+                               {% if isDefault or (not hasDefault and loop.first) %}
+                                   checked
+                               {% endif %}>
+
+                        <div class="curbstone-card-tile">
+                            <div class="curbstone-card-row">
+                                <div class="curbstone-card-labels">
+                                    <span class="curbstone-card-label">
+                                        <span class="curbstone-card-label__key">Type</span>
+                                        <span class="curbstone-card-label__value">{{ cardType }}</span>
+                                    </span>
+                                    {% if cardHolderNameVerified and cardHolderName %}
+                                        <span class="curbstone-card-label curbstone-card-label--secondary">
+                                            <span class="curbstone-card-label__key">Card holder</span>
+                                            <span class="curbstone-card-label__value">{{ cardHolderName }}</span>
+                                        </span>
+                                    {% endif %}
+                                    {% if cardBrand and cardBrand != cardType %}
+                                        <span class="curbstone-card-label curbstone-card-label--secondary">
+                                            <span class="curbstone-card-label__key">Brand</span>
+                                            <span class="curbstone-card-label__value">{{ cardBrand }}</span>
+                                        </span>
+                                    {% endif %}
+                                </div>
+
+                                {% if isDefault %}
+                                    <span class="curbstone-card-badge">Default</span>
+                                {% endif %}
+                            </div>
+
+                            <div class="curbstone-card-number">{{ cardDisplay }}</div>
+
+                            <div class="curbstone-card-meta">
+                                {% if cardExpiry %}
+                                    {{ cardExpiry }}
+                                {% else %}
+                                    No expiry on file
+                                {% endif %}
+                            </div>
+                        </div>
+                    </label>
+                {% endfor %}
+            </div>
+
+            <div class="curbstone-pagination" data-curbstone-pagination>
+                <button type="button" class="curbstone-page-btn" data-curbstone-page-prev disabled>
+                    Previous
+                </button>
+
+                <span class="curbstone-page-info">
+                    Page <span data-curbstone-page-current>1</span>
+                    <span class="curbstone-page-separator">/</span>
+                    <span data-curbstone-page-total>1</span>
+                </span>
+
+                <button type="button" class="curbstone-page-btn" data-curbstone-page-next>
+                    Next
+                </button>
+            </div>
         {% endif %}
 
-        <script>
-            (function () {
-                var openBtn  = document.getElementById('curbstone-open-modal');
-                var modal    = document.getElementById('curbstone-modal');
-                var closeBtn = document.getElementById('curbstone-close-modal');
+        <div class="curbstone-new-card-wrapper">
+            <label class="curbstone-card-tile curbstone-card-tile--add">
+                <input type="radio"
+                       name="curbstone_card_choice"
+                       value="new"
+                       class="curbstone-saved-card-radio curbstone-card-tile-input"
+                       {% if savedCards|length == 0 %}checked{% endif %}>
 
-                if (!openBtn || !modal) {
-                    return;
-                }
+                <div class="curbstone-card-tile-body">
+                    <div class="curbstone-card-row">
+                        <span class="curbstone-card-add-icon">+</span>
+                        <span class="curbstone-card-brand">Use a new card</span>
+                    </div>
+                    <div class="curbstone-card-meta">Add a different card just for this order.</div>
+                </div>
+            </label>
+        </div>
 
-                openBtn.addEventListener('click', function () {
-                    modal.style.display = 'flex';
-                });
+        <div id="curbstone-save-card-wrapper" class="curbstone-save-card-wrapper">
+            <label class="curbstone-switch">
+                <input type="checkbox"
+                       id="curbstone-save-card"
+                       name="curbstone_save_card"
+                       value="1"
+                       checked>
 
-                closeBtn && closeBtn.addEventListener('click', function () {
-                    modal.style.display = 'none';
-                });
+                <span class="curbstone-switch-slider"></span>
+                <span class="curbstone-switch-label">Save this card for future purchases</span>
+            </label>
+        </div>
 
-                // click outside to close
-                modal.addEventListener('click', function (e) {
-                    if (e.target === modal) {
-                        modal.style.display = 'none';
-                    }
-                });
-            })();
-        </script>
+        {# ---- Inline Iframe Wrapper ---- #}
+        <div id="curbstone-inline-wrapper"
+             class="curbstone-inline-wrapper"
+             data-curbstone-inline-payment="true"
+             aria-hidden="false"
+             data-curbstone-preauth-url="{{ path('frontend.curbstone.inline.preauth') }}">
 
-    {% endif %}
+            <div class="curbstone-section-header curbstone-section-header--inline">
+                <h4 class="curbstone-section-title">Card details</h4>
+                <p class="curbstone-section-subtitle">
+                    Your payment is processed securely by Curbstone.
+                </p>
+            </div>
+
+            <p id="curbstone-inline-status" class="curbstone-inline-status">Loading card form…</p>
+            <p id="curbstone-inline-error" class="curbstone-inline-error"></p>
+
+            <div id="curbstone-iframe-container"
+                 class="curbstone-inline-iframe-container"></div>
+        </div>
+    </div>
+{% endif %}
+
+<script src="https://c3sbx.net/curbstone/plp/scripts/plp.js"></script>
 {% endblock %}

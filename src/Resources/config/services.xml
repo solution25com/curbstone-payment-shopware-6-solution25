@@ -5,82 +5,97 @@
 
     <services>
         <defaults autowire="true" autoconfigure="true" public="false" />
+        <service id="Curbstone.logger" class="Monolog\Logger">
+            <argument type="string">Curbstone</argument>
+            <argument type="collection">
+                <argument type="service" id="Curbstone.rotatingHandler"/>
+            </argument>
+        </service>
+        <service id="Curbstone.rotatingHandler" class="Monolog\Handler\RotatingFileHandler">
+            <argument type="string">%kernel.logs_dir%/Curbstone-%kernel.environment%.log</argument>
+            <argument type="constant">Monolog\Logger::INFO</argument>
+        </service>
+        <!-- Services -->
+    <service id="Curbstone\Service\CurbstoneRequestFactory" />
+    <service id="Curbstone\Service\CurbstoneRefundService">
+        <argument type="service" id="Curbstone\Config\CurbstoneConfigProvider"/>
+        <argument type="service" id="Curbstone\Service\CurbstoneTransactionService"/>
+        <argument type="service" id="Curbstone\Service\CurbstonePaymentClient"/>
+        <argument type="service" id="Curbstone\Service\CurbstoneRequestFactory"/>
+        <argument type="service" id="order_transaction_capture_refund.repository"/>
+        <argument type="service" id="Curbstone.logger"/>
+    </service>
 
+
+        <service id="Curbstone\Service\CurbstoneCardResolver">
+            <argument type="service" id="monolog.logger" />
+            <argument type="service" id="Curbstone\Service\CurbstoneVaultService" />
+        </service>
+
+        <service id="Curbstone\Service\CurbstonePaymentClient" />
+        <service id="Curbstone\Service\CurbstonePreauthClient" public="false" />
+        
+        <service id="Curbstone\Service\CurbstoneVaultService" public="false">
+            <argument type="service" id="customer.repository" />
+            <argument type="service" id="Curbstone.logger" />
+        </service>
         <!-- Config provider (reads SystemConfig + env) -->
         <service id="Curbstone\Config\CurbstoneConfigProvider">
             <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService" />
         </service>
 
-        <!-- Mapper: DTO <-> Curbstone MF* fields -->
-        <service id="Curbstone\Mapper\AuthorizeMapperImpl" />
-        <service id="Curbstone\Mapper\AuthorizeMapper" alias="Curbstone\Mapper\AuthorizeMapperImpl" />
-
-        <!-- Low-level PSR-18 transport -->
-        <service id="Curbstone\Http\Psr18CurbstoneHttp">
-            <argument type="service" id="Psr\Http\Client\ClientInterface" />
-            <argument type="service" id="Psr\Http\Message\RequestFactoryInterface" />
-            <argument type="service" id="Psr\Http\Message\StreamFactoryInterface" />
-            <argument type="service" id="logger" />
+        <service id="Curbstone\Service\CurbstoneTransactionService" public="false">
+            <argument type="service" id="Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler" />
+            <argument type="service" id="order_transaction.repository" />
+            <argument type="service" id="router" />
+            <argument type="service" id="Curbstone.logger" />
         </service>
-        <service id="Curbstone\Contract\CurbstoneHttp" alias="Curbstone\Http\Psr18CurbstoneHttp" />
+        
 
         <!-- Gateways facade (typed DTO in/out) -->
-        <service id="Curbstone\Gateways\CurbstoneGatewayImpl">
-            <argument type="service" id="Curbstone\Contract\CurbstoneHttp" />
-            <argument type="service" id="Curbstone\Config\CurbstoneConfigProvider" />
-            <argument type="service" id="Curbstone\Mapper\AuthorizeMapper" />
-        </service>
-        <service id="Curbstone\Contract\CurbstoneGateway"
-            alias="Curbstone\Gateways\CurbstoneGatewayImpl" />
-        <service id="Curbstone\Command\CurbstoneSmokeCommand">
-            <argument type="service" id="Curbstone\Contract\CurbstoneGateway" />
-            <tag name="console.command" />
-        </service>
         <service id="Curbstone\Gateways\CreditCard" public="true">
-            <argument type="service" id="Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler"/>
-            <argument type="service" id="order_transaction.repository"/>
-            <argument type="service" id="order.repository"/> 
-            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
-            <argument type="service" id="logger"/>
-            <argument type="service" id="router"/>
-            <tag name="shopware.payment.method"/>
+            <argument type="service" id="Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler" />
+            <argument type="service" id="Curbstone\Config\CurbstoneConfigProvider" />
+            <argument type="service" id="Curbstone.logger" />
+            <argument type="service" id="Curbstone\Service\CurbstoneRequestFactory" />
+            <argument type="service" id="Curbstone\Service\CurbstoneCardResolver" />
+            <argument type="service" id="Curbstone\Service\CurbstonePaymentClient" />
+            <argument type="service" id="Curbstone\Service\CurbstoneTransactionService" />
         </service>
 
         <service id="Curbstone\Subscriber\CheckoutConfirmEventSubscriber">
             <tag name="kernel.event_subscriber" />
         </service>
-        <service id="Curbstone\Storefront\Controller\CurbstoneReturnController" public="true">
-            <argument type="service" id="order_transaction.repository" />
-            <argument type="service" id="Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionStateHandler" />
-            <!-- <argument type="service" id="router"/> -->
-            <argument type="service" id="logger" />
+        <service id="Curbstone\Subscriber\CurbstoneRefundSubscriber">
+            <argument type="service" id="Curbstone\Config\CurbstoneConfigProvider" />
+            <argument type="service" id="Curbstone\Service\CurbstoneTransactionService" />
+            <argument type="service" id="Curbstone\Service\CurbstoneRefundService" />
+            <argument type="service" id="Curbstone.logger" />
+            <tag name="kernel.event_subscriber" />
+        </service>
+
+
+        <service id="Curbstone\Storefront\Controller\CurbstoneInlinePreauthController" public="true">
+            <argument type="service" id="Curbstone\Config\CurbstoneConfigProvider" />
+            <argument type="service" id="Curbstone.logger" />
+            <argument type="service" id="Curbstone\Service\CurbstoneRequestFactory" />
+            <argument type="service" id="Curbstone\Service\CurbstonePreauthClient" />
+            <argument type="service" id="Curbstone\Service\CurbstoneVaultService" />
+            <argument type="string">%kernel.environment%</argument>
             <tag name="controller.service_arguments" />
         </service>
 
-        <service id="Curbstone.rotatingHandler" class="Monolog\Handler\RotatingFileHandler">
-            <argument type="string">%kernel.logs_dir%/Curbstone-log-%kernel.environment%.log</argument>
+        <service id="Curbstone\Storefront\Controller\SavedCardsController" public="true">
+            <argument type="service" id="Shopware\Storefront\Page\GenericPageLoader" />
         </service>
-        <service id="Curbstone.logger" class="Monolog\Logger">
-            <argument type="string">Curbstone</argument>
-            <argument type="collection">
-                <argument type="service" id="Curbstone.rotatingHandler" />
-            </argument>
+        <service id="Curbstone\Command\BackfillSavedCardMetadataCommand" public="true">
+            <tag name="console.command" />
         </service>
-
         <service id="Curbstone\Service\CustomFieldUpdater"
             class="Curbstone\Service\CustomFieldUpdater" public="false">
             <argument type="service" id="order_transaction.repository" />
             <argument type="service" id="order.repository" />
         </service>
-        <service id="Curbstone\Subscriber\AccountOrderEditTxIdSubscriber">
-            <argument type="service" id="order_transaction.repository"/>
-            <tag name="kernel.event_subscriber"/>
-        </service>
-        <!-- <service id="Curbstone\Subscriber\CheckoutFinishEventSubscriber">
-            <tag name="kernel.event_subscriber"/>
-        </service> -->
-        <service id="Curbstone\Subscriber\AccountOrderEventSubscriber">
-            <tag name="kernel.event_subscriber"/>
-        </service>
+
     </services>
 </container>

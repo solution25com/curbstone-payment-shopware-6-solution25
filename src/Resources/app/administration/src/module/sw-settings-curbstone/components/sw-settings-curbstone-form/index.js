@@ -20,8 +20,9 @@ Component.register("sw-settings-curbstone-form", {
                 "Curbstone.config.merchantCode": "",
                 "Curbstone.config.authCaptureFlow": "auth_only",
                 "Curbstone.config.plpMode": "embedded",
-                "Curbstone.config.requireCaptcha": true,
                 "Curbstone.config.checkoutIntegration": "plp",
+                "Curbstone.config.disableSubscribers": false, // 👈 new
+                "Curbstone.config.verifyTls": true,
             }
         };
     },
@@ -41,13 +42,13 @@ Component.register("sw-settings-curbstone-form", {
                 { value: "embedded", label: "Embedded (iFrame)" },
                 { value: "redirect", label: "Redirect (full page)" }
             ];
-            },
-            checkoutIntegrationOptions(){
-                return[
-                    { value: "plp", label: "PLP" },
-                    { value: "dsi", label: "DSI" }
-                ];
-            }
+        },
+        checkoutIntegrationOptions() {
+            return [
+                { value: "plp", label: "PLP" },
+                { value: "dsi", label: "DSI" }
+            ];
+        }
     },
 
     created() {
@@ -60,7 +61,6 @@ Component.register("sw-settings-curbstone-form", {
             this.salesChannelId = salesChannelId || null;
             await this.loadConfig();
         },
-
         async loadConfig() {
             this.isLoading = true;
             try {
@@ -68,40 +68,41 @@ Component.register("sw-settings-curbstone-form", {
                     this.configDomain,
                     this.salesChannelId
                 );
-
+        
                 this.form["Curbstone.config.enabled"] =
                     values["Curbstone.config.enabled"] ?? false;
-
+        
                 this.form["Curbstone.config.sandbox"] =
                     values["Curbstone.config.sandbox"] ?? true;
-
+        
                 this.form["Curbstone.config.dsiKey"] =
                     values["Curbstone.config.dsiKey"] ?? "";
-
+        
                 this.form["Curbstone.config.customerId"] =
                     values["Curbstone.config.customerId"] ?? "";
-
+        
                 this.form["Curbstone.config.merchantCode"] =
                     values["Curbstone.config.merchantCode"] ?? "";
-
+        
                 this.form["Curbstone.config.authCaptureFlow"] =
                     values["Curbstone.config.authCaptureFlow"] ?? "auth_only";
-
+        
                 this.form["Curbstone.config.plpMode"] =
                     values["Curbstone.config.plpMode"] ?? "embedded";
-
-                this.form["Curbstone.config.requireCaptcha"] =
-                    values["Curbstone.config.requireCaptcha"] ?? true;
+        
                 this.form["Curbstone.config.checkoutIntegration"] =
                     values["Curbstone.config.checkoutIntegration"] ?? "plp";
-
+        
+                this.form["Curbstone.config.disableSubscribers"] =
+                    values["Curbstone.config.disableSubscribers"] ?? false; // 👈 new
+                this.form["Curbstone.config.verifyTls"] =
+                    values["Curbstone.config.verifyTls"] ?? true;
             } catch (e) {
                 this.createNotificationError({
                     title: "Curbstone",
                     message: "Failed to load configuration."
                 });
                 throw e;
-
             } finally {
                 this.isLoading = false;
             }
@@ -120,12 +121,13 @@ Component.register("sw-settings-curbstone-form", {
                         "Curbstone.config.merchantCode": this.form["Curbstone.config.merchantCode"],
                         "Curbstone.config.authCaptureFlow": this.form["Curbstone.config.authCaptureFlow"],
                         "Curbstone.config.plpMode": this.form["Curbstone.config.plpMode"],
-                        "Curbstone.config.requireCaptcha": this.form["Curbstone.config.requireCaptcha"],
-                        "Curbstone.config.checkoutIntegration": this.form["Curbstone.config.checkoutIntegration"]
+                        "Curbstone.config.checkoutIntegration": this.form["Curbstone.config.checkoutIntegration"],
+                        "Curbstone.config.disableSubscribers": this.form["Curbstone.config.disableSubscribers"], // 👈 new
+                        "Curbstone.config.verifyTls": this.form["Curbstone.config.verifyTls"],
                     },
                     this.salesChannelId
                 );
-
+        
                 this.createNotificationSuccess({
                     title: "Curbstone",
                     message: "Configuration saved."
@@ -141,5 +143,6 @@ Component.register("sw-settings-curbstone-form", {
                 this.isLoading = false;
             }
         }
+        
     }
 });

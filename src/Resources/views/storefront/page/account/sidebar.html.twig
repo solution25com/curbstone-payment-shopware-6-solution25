@@ -1,0 +1,18 @@
+{% sw_extends '@Storefront/storefront/page/account/sidebar.html.twig' %}
+{% block page_account_sidebar_menu %}
+    {% if not context.customer.guest %}
+       <nav class="list-group list-group-flush account-aside-list-group">
+            {{ parent() }}
+            {% block page_account_sidebar_link_saved_cards %}
+                {% set validRoutes = ['frontend.abandoned.carts', 'frontend.abandoned.carts'] %}
+                    <a  href="{{ path('frontend.account.saved_cards.page') }}"
+                                   class="list-group-item list-group-item-action account-aside-item{% if activeRoute is same as('frontend.account.home.page') %} is-active{% endif %}"
+                    >
+                        {{ "Saved cards"|trans|sw_sanitize }}
+                    </a>
+            {% endblock %}
+        </nav>
+    {% endif %}
+    {% block page_account_sidebar_link_subscriptions %}
+        {% endblock %}
+{% endblock %}

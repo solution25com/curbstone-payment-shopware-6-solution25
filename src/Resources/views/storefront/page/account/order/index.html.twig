@@ -1,23 +1,49 @@
-{% sw_extends '@Storefront/storefront/page/checkout/confirm/index.html.twig' %}
+{% sw_extends '@Storefront/storefront/page/account/order/index.html.twig' %}
 
-{% block page_checkout_confirm_payment %}
+{% block page_checkout_confirm_form_submit %}
+    {% set preauth = page.extensions.curbstone_preauth ?? null %}
+    {% set curbstoneAuto = app.request.get('curbstone_auto') %}
+    {% set qsStatus = app.request.get('curbstone_status') %}
+    {% set qsToken = app.request.get('curbstone_token') %}
+    {% set qsMfukey = app.request.get('curbstone_mfukey') %}
+    {% set effectiveStatus = preauth ? preauth.status|default('pending') : (qsStatus ?: 'pending') %}
+    {% set effectiveToken = preauth ? preauth.token|default('') : (qsToken ?: '') %}
+    {% set effectiveMfukey = preauth ? preauth.mfukey|default('') : (qsMfukey ?: '') %}
+    {% set isCurbstone = context.paymentMethod is defined
+        and context.paymentMethod.formattedHandlerIdentifier == 'handler_curbstone_creditcard' %}
+
+    <input type="hidden" name="curbstone_pre_auth_status" id="curbstone-pre-auth-status" value="{{ effectiveStatus }}">
+    <input type="hidden" name="curbstone_pre_auth_token" id="curbstone-pre-auth-token" value="{{ effectiveToken }}">
+    <input type="hidden" name="curbstone_pre_auth_mfukey" id="curbstone-pre-auth-mfukey" value="{{ effectiveMfukey }}">
+
     {{ parent() }}
 
-    {% set curbstone = page.extensions.curbstone_payment ?? null %}
+    {% if isCurbstone %}
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const btn = document.querySelector('#confirmOrderForm button[type="submit"]');
+                const radios = document.querySelectorAll('input[name="curbstone_card_choice"]');
+                if (!btn || !radios.length) return;
 
-    {% if curbstone %}
-        {% if curbstone.template is defined %}
-            {% include curbstone.template with {
-                page: page,
-                curbstone: curbstone
-            } %}
-        {% elseif curbstone.iframeUrl is defined %}
-            {% include '@Curbstone/storefront/curbstone-payment/curbstone-payment.html.twig' with {
-                page: page,
-                curbstone: curbstone
-            } %}
-        {% else %}
-        {% endif %}
-    {% else %}
+                function update() {
+                    const selected = document.querySelector('input[name="curbstone_card_choice"]:checked');
+                    if (!selected) return;
+                    btn.style.display = selected.value === 'new' ? 'none' : '';
+                }
+
+                radios.forEach(r => r.addEventListener('change', update));
+                update();
+            });
+        </script>
+    {% endif %}
+
+    {% if curbstoneAuto and effectiveStatus == 'OK' and effectiveToken is not empty and effectiveMfukey is not empty %}
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const form = document.querySelector('#confirmOrderForm');
+                if (!form) return;
+                setTimeout(() => form.submit(), 250);
+            });
+        </script>
     {% endif %}
 {% endblock %}

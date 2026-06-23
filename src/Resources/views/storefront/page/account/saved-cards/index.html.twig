@@ -1,0 +1,310 @@
+{% sw_extends '@Storefront/storefront/page/account/_page.html.twig' %}
+
+{% block page_account_main_content %}
+    {% set savedCardsStruct = page.extensions.curbstone_saved_cards ?? null %}
+    {% set savedCards = savedCardsStruct ? savedCardsStruct : [] %}
+    <div class="curbstone-account-cards">
+        <div class="curbstone-account-cards__header">
+            <h1 class="account-main-header">Saved cards</h1>
+
+            <button type="button"
+                    id="curbstone-account-add-card-btn"
+                    class="btn btn-primary curbstone-account-add-card__btn"
+                    data-preauth-url="{{ path('frontend.curbstone.inline.preauth.account') }}">
+                Add card
+            </button>
+        </div>
+
+        {% if savedCards|length == 0 %}
+            <p>You don’t have any saved cards yet.</p>
+        {% else %}
+            <div class="curbstone-account-cards__grid"
+                 data-curbstone-cards-per-page="5">
+
+                {% for card in savedCards %}
+                    {% set cardType = (card.type|default('')|trim) ?: (card.brand|default('')|trim) ?: 'Card' %}
+                    {% set cardBrand = card.brand|default('')|trim %}
+                    {% if cardBrand == 'Card' %}
+                        {% set cardBrand = '' %}
+                    {% endif %}
+                    {% set cardHolderNameVerified = card.cardHolderNameVerified|default(false) %}
+                    {% set cardHolderName = card.cardHolderName|default(card.holderName|default(''))|trim %}
+                    {% set cardDisplay = cardType ~ ' ending in ' ~ (card.last4|default('0000')|trim) %}
+                    {% set cardExpiry = card.exp ? 'Expires ' ~ card.exp : null %}
+                    <label class="curbstone-account-card curbstone-account-card--saved">
+                        <input type="radio"
+                               name="curbstone_account_card_choice"
+                               value="{{ card.mfkeyp }}"
+                               class="curbstone-account-card__input">
+
+                        <div class="curbstone-account-card__body">
+                            <div class="curbstone-account-card__row">
+                                <span class="curbstone-account-card__brand curbstone-account-card__brand--{{ cardBrand|lower|replace({' ': '-'}) }}">
+                                    {{ cardType }}
+                                </span>
+
+                                {% if card.isDefault ?? false %}
+                                    <span class="curbstone-account-card__badge">Default</span>
+                                {% endif %}
+                            </div>
+
+                            <div class="curbstone-account-card__brand-line">
+                                <span class="curbstone-account-card__label">
+                                    <span class="curbstone-account-card__label-key">Type</span>
+                                    <span class="curbstone-account-card__label-value">{{ cardType }}</span>
+                                </span>
+                                {% if cardHolderNameVerified and cardHolderName %}
+                                    <span class="curbstone-account-card__label">
+                                        <span class="curbstone-account-card__label-key">Card holder</span>
+                                        <span class="curbstone-account-card__label-value">{{ cardHolderName }}</span>
+                                    </span>
+                                {% endif %}
+                                {% if cardBrand and cardBrand != cardType %}
+                                    <span class="curbstone-account-card__label">
+                                        <span class="curbstone-account-card__label-key">Brand</span>
+                                        <span class="curbstone-account-card__label-value">{{ cardBrand }}</span>
+                                    </span>
+                                {% endif %}
+                            </div>
+
+                            <div class="curbstone-account-card__pan">{{ cardDisplay }}</div>
+
+                            <div class="curbstone-account-card__meta">
+                                {% if cardExpiry %}
+                                    {{ cardExpiry }}
+                                {% else %}
+                                    No expiry on file
+                                {% endif %}
+                            </div>
+
+                            <div class="curbstone-account-card__actions">
+                                <button type="button"
+                                        class="btn btn-sm btn-danger curbstone-account-card__delete-btn js-curbstone-delete-card-btn"
+                                        data-mfkeyp="{{ card.mfkeyp }}"
+                                        data-card-label="{{ cardDisplay }}{% if cardExpiry %} — {{ cardExpiry }}{% endif %}">
+                                    Remove
+                                </button>
+                            </div>
+                        </div>
+                    </label>
+                {% endfor %}
+            </div>
+
+            <div class="curbstone-account-pagination"
+                 data-curbstone-pagination>
+                <button type="button"
+                        class="curbstone-account-pagination__btn"
+                        data-curbstone-page-prev
+                        disabled>
+                    Previous
+                </button>
+
+                <span class="curbstone-account-pagination__info">
+                    Page
+                    <span data-curbstone-page-current>1</span>
+                    <span class="curbstone-account-pagination__sep">/</span>
+                    <span data-curbstone-page-total>1</span>
+                </span>
+
+                <button type="button"
+                        class="curbstone-account-pagination__btn"
+                        data-curbstone-page-next>
+                    Next
+                </button>
+            </div>
+        {% endif %}
+    </div>
+
+    <form id="curbstone-delete-card-form"
+          method="post"
+          action="{{ path('frontend.account.saved_cards.delete') }}"
+          style="display:none;">
+        <input type="hidden" name="mfkeyp" id="curbstone-delete-mfkeyp">
+    </form>
+
+    <div class="modal fade"
+         id="curbstoneDeleteCardModal"
+         tabindex="-1"
+         aria-labelledby="curbstoneDeleteCardModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="curbstoneDeleteCardModalLabel">
+                        Remove saved card
+                    </h5>
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close">
+                    </button>
+                </div>
+
+                <div class="modal-body">
+                    <p>
+                        Are you sure you want to remove this card?
+                    </p>
+                    <p class="text-muted mb-0">
+                        <strong>Card:</strong>
+                        <span id="curbstone-delete-card-label"></span>
+                    </p>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button"
+                            class="btn btn-secondary"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            form="curbstone-delete-card-form"
+                            class="btn btn-danger">
+                        Yes, remove card
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade"
+         id="curbstoneAddCardModal"
+         tabindex="-1"
+         aria-labelledby="curbstoneAddCardModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="curbstoneAddCardModalLabel">
+                        Add new card
+                    </h5>
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close">
+                    </button>
+                </div>
+
+                <div class="modal-body">
+                    <p id="curbstone-account-add-status"
+                       class="curbstone-account-add-card__status"></p>
+
+                    <p id="curbstone-account-add-error"
+                       class="curbstone-account-add-card__error text-danger"></p>
+
+                    <div id="curbstone-account-iframe-container"
+                         class="curbstone-account-add-card__iframe"></div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button"
+                            class="btn btn-secondary"
+                            data-bs-dismiss="modal">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript"
+            src="https://c3sbx.net/curbstone/plp/scripts/plp.js">
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Delete modal
+            var deleteModalEl     = document.getElementById('curbstoneDeleteCardModal');
+            var hiddenInput       = document.getElementById('curbstone-delete-mfkeyp');
+            var labelSpan         = document.getElementById('curbstone-delete-card-label');
+            var deleteModalInstance = null;
+
+            if (deleteModalEl && hiddenInput && labelSpan && window.bootstrap && window.bootstrap.Modal) {
+                deleteModalInstance = new window.bootstrap.Modal(deleteModalEl);
+
+                document.querySelectorAll('.js-curbstone-delete-card-btn').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        var mfkeyp = this.getAttribute('data-mfkeyp') || '';
+                        var label  = this.getAttribute('data-card-label') || '';
+
+                        hiddenInput.value = mfkeyp;
+                        labelSpan.textContent = label;
+
+                        deleteModalInstance.show();
+                    });
+                });
+            } else {
+                console.warn('[Curbstone] Delete card modal not fully wired (missing DOM or Bootstrap)');
+            }
+
+            // Add card modal
+            var addBtn          = document.getElementById('curbstone-account-add-card-btn');
+            var addModalEl      = document.getElementById('curbstoneAddCardModal');
+            var statusEl        = document.getElementById('curbstone-account-add-status');
+            var errorEl         = document.getElementById('curbstone-account-add-error');
+            var iframeContainer = document.getElementById('curbstone-account-iframe-container');
+            var addModalInstance = null;
+
+            if (!addBtn || !addModalEl || !statusEl || !errorEl || !iframeContainer) {
+                console.warn('[Curbstone] Add card modal DOM elements missing');
+                return;
+            }
+
+            if (window.bootstrap && window.bootstrap.Modal) {
+                addModalInstance = new window.bootstrap.Modal(addModalEl);
+            } else {
+                console.warn('[Curbstone] Bootstrap Modal not found – add card modal will not work.');
+                return;
+            }
+
+            var preauthUrl = addBtn.getAttribute('data-preauth-url');
+            if (!preauthUrl) {
+                console.warn('[Curbstone] No preauth URL found on add card button');
+                return;
+            }
+
+            addBtn.addEventListener('click', function () {
+                statusEl.textContent = 'Loading secure card form…';
+                errorEl.textContent  = '';
+                iframeContainer.innerHTML = '';
+
+                addModalInstance.show();
+
+                fetch(preauthUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'saveCard=1'
+                })
+                    .then(function (response) {
+                        return response.json();
+                    })
+                    .then(function (data) {
+                        if (!data || !data.success || !data.iframeUrl) {
+                            errorEl.textContent  = 'Could not start card registration. Please try again.';
+                            statusEl.textContent = '';
+                            return;
+                        }
+
+                        var iframe = document.createElement('iframe');
+                        iframe.src = data.iframeUrl;
+                        iframe.setAttribute('frameborder', '0');
+                        iframe.setAttribute('allowtransparency', 'true');
+                        iframe.className = 'curbstone-account-add-card__iframe-inner';
+
+                        iframeContainer.appendChild(iframe);
+
+                        statusEl.textContent = 'Fill in your card details in the secure form above. ' +
+                            'After approval you will be redirected back here and the new card will appear in the list.';
+                    })
+                    .catch(function (err) {
+                        console.error('[Curbstone] Account add card error', err);
+                        errorEl.textContent  = 'Unexpected error while loading card form.';
+                        statusEl.textContent = '';
+                    });
+            });
+        });
+    </script>
+{% endblock %}

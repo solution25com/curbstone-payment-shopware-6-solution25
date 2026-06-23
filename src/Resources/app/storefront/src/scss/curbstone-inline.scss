@@ -1,0 +1,254 @@
+.curbstone-payment-section {
+    margin-top: 1.5rem;
+    padding: 1.25rem;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    background: #fafafa;
+}
+
+.curbstone-section-header {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 0.75rem;
+}
+
+.curbstone-section-header--inline {
+    margin-top: 1rem;
+}
+
+.curbstone-section-title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.curbstone-section-subtitle {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #666;
+}
+
+
+.curbstone-saved-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.curbstone-card-tile {
+    position: relative;
+    display: block;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
+}
+
+.curbstone-card-tile:hover {
+    border-color: #1976d2;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
+}
+
+.curbstone-card-tile-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.curbstone-card-tile-body {
+    padding: 0.75rem 0.9rem;
+}
+
+.curbstone-card-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+}
+
+.curbstone-card-brand {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.curbstone-card-badge {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    padding: 0.1rem 0.35rem;
+    border-radius: 999px;
+    background: #e3f2fd;
+    color: #1976d2;
+    font-weight: 600;
+}
+
+.curbstone-card-number {
+    font-size: 0.95rem;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.1rem;
+}
+
+.curbstone-card-meta {
+    font-size: 0.75rem;
+    color: #777;
+}
+
+.curbstone-card-tile-input:checked + .curbstone-card-tile-body,
+.curbstone-card-tile-input:checked ~ .curbstone-card-tile-body {
+    border-radius: 8px;
+    box-shadow: 0 0 0 1px #1976d2;
+}
+
+.curbstone-card-tile--add {
+    border-style: dashed;
+    border-color: #bbb;
+    background: #fcfcfc;
+}
+
+.curbstone-card-tile--add:hover {
+    border-color: #1976d2;
+    background: #f5f9ff;
+}
+
+.curbstone-card-add-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    border: 1px solid #1976d2;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-right: 0.25rem;
+    color: #1976d2;
+}
+
+.curbstone-save-card-wrapper {
+    margin: 0.75rem 0 0.5rem;
+}
+
+.curbstone-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.curbstone-switch input {
+    display: none;
+}
+
+.curbstone-switch-slider {
+    position: relative;
+    width: 34px;
+    height: 18px;
+    border-radius: 999px;
+    background: #ccc;
+    transition: background 0.15s ease;
+}
+
+.curbstone-switch-slider::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    transition: transform 0.15s ease;
+}
+
+.curbstone-switch input:checked + .curbstone-switch-slider {
+    background: #1976d2;
+}
+
+.curbstone-switch input:checked + .curbstone-switch-slider::before {
+    transform: translateX(16px);
+}
+
+.curbstone-switch-label {
+    font-size: 0.8rem;
+    color: #444;
+}
+
+.curbstone-inline-wrapper {
+    margin-top: 0.5rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 8px;
+    border: 1px dashed #ddd;
+    background: #fdfdfd;
+}
+
+.curbstone-inline-wrapper[aria-hidden="true"] {
+    display: none;
+}
+
+.curbstone-inline-status {
+    margin: 0.5rem 0 0.25rem;
+    font-size: 0.8rem;
+    color: #555;
+}
+
+.curbstone-inline-error {
+    margin: 0.25rem 0;
+    font-size: 0.8rem;
+    color: #b00020;
+}
+
+.curbstone-inline-iframe-container iframe {
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    background: #fff;
+}
+
+/* Pagination */
+
+.curbstone-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+}
+
+.curbstone-page-btn {
+    border-radius: 999px;
+    border: 1px solid #ccc;
+    padding: 0.2rem 0.6rem;
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.75rem;
+    line-height: 1.2;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.curbstone-page-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.curbstone-page-btn:not(:disabled):hover {
+    border-color: #1976d2;
+    background: #f5f9ff;
+}
+
+.curbstone-page-info {
+    color: #666;
+}
+
+.curbstone-page-separator {
+    margin: 0 2px;
+}
+
+.curbstone-new-card-wrapper {
+    margin-top: 0.75rem;
+}
